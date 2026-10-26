@@ -1,21 +1,28 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-OUTPUT_FILE="${1:-ufw-config.txt}"
+# Check output filename
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <output-file>"
+    exit 1
+fi
 
-sudo ufw --force reset
+OUTPUT_FILE="$1"
 
-# Limit connections to ports 6050-6055
-sudo ufw limit 6050:6055/tcp
+# 1. Database: allow local application access
+ufw allow in on lo from 127.0.0.1 to any port 3306 proto tcp
+ufw reject 3306/tcp
 
-# Allow management panel on eth0
-sudo ufw allow in on eth0 to any port 8099
+# 2. Admin panel: allow trusted IP, reject others
+ufw insert 1 allow from 192.168.32.55 to any port 3005
+ufw reject 3005
 
-# Reject access to admin panel
-sudo ufw reject 3005
+# 3. Management panel: allow via eth0
+ufw allow in on eth0 to any port 8099
 
-# Enable firewall
-sudo ufw --force enable
+# 4. Rate-limit new connections on ports 6050-6055
+ufw limit 6050:6055/tcp
 
-# Save configuration
-sudo ufw status > "$OUTPUT_FILE"
+# 5. Export UFW rules
+ufw status > "$OUTPUT_FILE"
+

@@ -24,29 +24,36 @@ jobs:
       - name: Run add-rules.sh
         run: |
           sudo bash -e add-rules.sh ufw-config.txt
+          echo "Current directory:"
+          pwd
+          echo "Generated files:"
+          ls -la
+          echo "Generated UFW config:"
+          cat ufw-config.txt
+          echo "UFW status:"
+          sudo ufw status numbered
 
       - name: Verify UFW Config
         run: |
-          if test -f ufw-config.txt; then
-
-            if ! grep -q "6050:6055/tcp\s*LIMIT IN\s*Anywhere" ufw-config.txt; then
-              echo "Port range limit rule not found."
-              exit 1
-            fi
-
-            if ! grep -q "8099 on eth0\s*ALLOW IN\s*Anywhere" ufw-config.txt; then
-              echo "Management panel rule not found."
-              exit 1
-            fi
-
-            if ! grep -q "3005\s*REJECT IN\s*Anywhere" ufw-config.txt; then
-              echo "Admin panel reject rule not found."
-              exit 1
-            fi
-
-            echo "All UFW rules verified successfully."
-          else
+          if [ ! -f ufw-config.txt ]; then
             echo "UFW config file not found."
             exit 1
           fi
+
+          if ! grep -Eq "6050:6055/tcp[[:space:]]+LIMIT IN[[:space:]]+Anywhere" ufw-config.txt; then
+            echo "Port range limit rule not found."
+            exit 1
+          fi
+
+          if ! grep -Eq "8099 on eth0[[:space:]]+ALLOW IN[[:space:]]+Anywhere" ufw-config.txt; then
+            echo "Management panel rule not found."
+            exit 1
+          fi
+
+          if ! grep -Eq "3005[[:space:]]+REJECT IN[[:space:]]+Anywhere" ufw-config.txt; then
+            echo "Admin panel reject rule not found."
+            exit 1
+          fi
+
+          echo "All UFW rules verified successfully."
 
